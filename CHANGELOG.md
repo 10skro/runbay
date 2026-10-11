@@ -4,6 +4,12 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.7] - 2026-10-11
+
+### Fixed
+
+- The app icon now shows in the Windows taskbar and title bar: the window icon was only set while developing, so the installed app wore Electron's default face. It now uses the app's own icon file, the same one the tray uses
+
 ## [0.1.6] - 2026-10-11
 
 ### Fixed

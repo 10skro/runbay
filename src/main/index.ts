@@ -50,9 +50,11 @@ function createWindow(): void {
     // Fond peint dans la couleur du thème : pas de flash clair/sombre avant le 1er rendu.
     backgroundColor: settings.theme === 'light' ? '#f5f6f7' : '#111214',
     title: 'RunBay',
-    // En dev, l'exe est Electron : on force l'icône du projet (barre de titre + taskbar).
-    // En paqué, l'icône est embarquée dans l'exe par electron-builder.
-    ...(is.dev && { icon: join(__dirname, '../../build/icon.ico') }),
+    // Fichier d'icône embarqué dans le paquet (barre de titre + barre des tâches).
+    // L'app est lancée depuis npm comme un simple dossier : l'exe est Electron,
+    // qui n'a pas de visage à lui — on lui donne le nôtre. Windows préfère le
+    // .ico (plusieurs tailles), les autres plateformes le .png du tray.
+    icon: appIconPath(process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -121,11 +123,19 @@ function createWindow(): void {
   }
 }
 
+/**
+ * Fichier d'icône de l'app elle-même : à côté des ressources quand elle est
+ * paquée (electron-builder), sinon dans build/ du paquet npm. Sert à la fenêtre
+ * (barre de titre + barre des tâches) et au tray — une seule et même image.
+ */
+function appIconPath(fileName: string): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, fileName)
+    : join(__dirname, '../../build', fileName)
+}
+
 function createTray(): void {
-  // En paqué, l'icône 256px est copiée à côté des ressources par electron-builder.
-  const iconPath = app.isPackaged
-    ? join(process.resourcesPath, 'icon.png')
-    : join(__dirname, '../../build/icon.png')
+  const iconPath = appIconPath('icon.png')
   tray = new Tray(nativeImage.createFromPath(iconPath))
   refreshTrayTip()
   tray.setContextMenu(
