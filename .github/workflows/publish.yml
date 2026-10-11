@@ -1,0 +1,41 @@
+# Publie runbay sur npm via Trusted Publishing (OIDC) : aucun token, aucun 2FA
+# à saisir. Déclenché par un tag v<version> ; la version de package.json doit
+# correspondre au tag. Côté npm : Settings → Trusted Publisher → 10skro / runbay / publish.yml.
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # jeton OIDC pour l'attestation npm
+  attestations: write # provenance du paquet publié
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier que le tag correspond à la version du paquet
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          tag=${GITHUB_REF_NAME#v}
+          if [ "$pkg" != "$tag" ]; then
+            echo "Le tag v$tag ne correspond pas à package.json ($pkg)." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: npm récent (Trusted Publishing exige npm >= 11.5)
+        run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --provenance --access public
