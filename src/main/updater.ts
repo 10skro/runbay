@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
-import { existsSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { run } from './providers/util'
 
@@ -116,6 +116,8 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
     return { state: 'done', message: `Updated to ${target} — restart to apply` }
   }
   if (!(await installedGlobally())) {
+    // Cas « hors racine globale » : l'utilisateur installe lui-même. Le lanceur
+    // rattrapera le binaire Electron manquant au premier démarrage s'il faut.
     return { state: 'manual', message: `npm install -g ${PKG}@${target}` }
   }
   const root = (await globalRoot()) as string
@@ -128,14 +130,22 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
   // contrairement au shim .cmd, qui en ouvrirait un.
   const appDir = app.getAppPath()
   const electronExe = join(appDir, 'node_modules', 'electron', 'dist', 'electron.exe')
-  const relaunch = existsSync(electronExe)
-    ? `start "" "${electronExe}" "${appDir}"`
-    : `start "" "${shim}"`
+  // Relancer le binaire Electron directement (fenêtre console garantie absente) ;
+  // s'il manque encore après l'étape ci-dessous, c'est le shim qui prend le
+  // relais — lui sait rattraper un binaire Electron absent (voir bin/runbay.js).
+  const relaunch = `if exist "${electronExe}" (start "" "${electronExe}" "${appDir}") else (start "" "${shim}")`
   // Version exacte détectée, jamais @latest : un cache npm local périmé résoudrait
   // @latest vers l'ancienne version sans erreur — donc sans rien installer. Une
   // version introuvable dans le cache échoue (ETARGET) et la seconde tentative,
   // en ligne, corrige.
   const install = `call npm install -g ${PKG}@${target}${registryFlag}`
+  // npm v12 ne lance plus les scripts des dépendances par défaut : le postinstall
+  // d'electron (téléchargement de son binaire) est sauté silencieusement, et son
+  // drapeau d'autorisation ne fonctionne pas pour les installations globales
+  // (npm/cli#9457). On exécute donc le script d'installation officiel d'electron
+  // nous-mêmes quand le binaire manque — même téléchargement, au bon moment,
+  // dans la console déjà cachée du script.
+  const ensureElectron = `if not exist "${electronExe}" node "${join(appDir, 'node_modules', 'electron', 'install.js')}" >> "${log}" 2>&1`
   const body = [
     '@echo off',
     'ping -n 9 127.0.0.1 >nul', // le temps que l'app se ferme ET que Windows relâche ses fichiers
@@ -148,6 +158,7 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
     '  ping -n 31 127.0.0.1 >nul',
     `${install} --prefer-online >> "${log}" 2>&1`,
     ')',
+    ensureElectron,
     relaunch,
     `del "${vbs}"`,
     'del "%~f0"',

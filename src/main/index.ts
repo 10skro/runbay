@@ -13,6 +13,11 @@ let closeHintShown = false
 
 const BACKGROUND_SCAN_MS = 30 * 60 * 1000
 
+// Identité d'application Windows (barre des tâches, notifications). Volontairement
+// neuve (« com.skrodu10... », notre pseudo) : l'ancienne collait depuis les
+// versions sans icône et Windows garde l'icône en cache par identifiant.
+const APP_ID = 'com.skrodu10.runbay'
+
 /** La fenêtre enregistrée touche-t-elle encore un écran branché ? (anti-fantôme multi-moniteur) */
 function isOnScreen(b: WindowBounds): boolean {
   return screen.getAllDisplays().some((d) => {
@@ -62,6 +67,18 @@ function createWindow(): void {
   })
 
   if (saved?.maximized) mainWindow.maximize()
+
+  // Bouton de barre des tâches : Windows le dessine à partir des propriétés
+  // d'application de la fenêtre, pas de l'option icon ci-dessus (qui habille la
+  // barre de titre). Sans ceci, l'icône affichée reste celle d'Electron.
+  // API officielle BrowserWindow.setAppDetails (Windows uniquement).
+  if (process.platform === 'win32') {
+    mainWindow.setAppDetails({
+      appId: APP_ID,
+      appIconPath: appIconPath('icon.ico'),
+      appIconIndex: 0
+    })
+  }
 
   // Ouverture : l'option « Open window in foreground » (activée par défaut) force le
   // premier plan. Windows le refuse aux processus lancés par un processus d'arrière-plan
@@ -200,12 +217,7 @@ if (isSecondInstance) {
 app.whenReady().then(() => {
   // Seconde instance : rien à initialiser, l'app se quitte juste après le ready.
   if (isSecondInstance) return
-  // Identifiant d'app tout neuf : Windows met en cache l'icône de la barre des
-  // tâches PAR identifiant. « com.jerem.runbay » a tourné de 0.1.0 à 0.1.6
-  // sans icône — l'icône Electron est restée collée au cache, même après la
-  // correction 0.1.7. Un identifiant vierge repart d'un cache vierge : la
-  // bonne icône s'affiche sans rien toucher sur la machine de l'utilisateur.
-  electronApp.setAppUserModelId('com.skrodu.runbay')
+  electronApp.setAppUserModelId(APP_ID)
   loadSettings()
   // Pas de menu par défaut (il serait traduit dans la langue du système et jure avec l'app).
   // Les raccourcis F5 / Ctrl+R / F12 restent actifs via optimizer.watchWindowShortcuts.

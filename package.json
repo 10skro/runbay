@@ -1,6 +1,6 @@
 {
   "name": "runbay",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Not an installer. A launcher. Detect, launch, update and uninstall apps installed from the command line (npm, pnpm, yarn, bun, scoop) — in one modern window.",
   "main": "./out/main/index.js",
   "bin": {

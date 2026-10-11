@@ -52,6 +52,8 @@ npm install -g runbay
 runbay
 ```
 
+> Depuis npm v12, les scripts d'installation des dépendances sont bloqués par défaut — dont le téléchargement du binaire Electron. Pas d'inquiétude : au premier lancement, RunBay détecte le binaire manquant et exécute lui-même l'installeur officiel d'Electron (téléchargement unique, affiché dans le terminal).
+
 Ou pour essayer une seule fois, sans rien installer :
 
 ```bash

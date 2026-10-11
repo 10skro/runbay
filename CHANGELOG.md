@@ -4,6 +4,13 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.10] - 2026-10-11
+
+### Fixed
+
+- Taskbar icon: the window itself already wore the app icon (title bar), but Windows draws the taskbar button from the window's application properties, not from the window icon. RunBay now sets those properties explicitly (`setAppDetails`), and the application identifier now carries the project's handle (`com.skrodu10.runbay`)
+- Self-update on npm v12: npm no longer runs dependencies' install scripts by default, so Electron's binary download was silently skipped — the update "succeeded" but the app could not relaunch until Electron was downloaded by hand. The updater now runs Electron's own installer itself when the binary is missing after the install, and the launcher does the same at startup (a plain `npm install -g runbay` on npm v12 now works too)
+
 ## [0.1.9] - 2026-10-11
 
 ### Fixed
