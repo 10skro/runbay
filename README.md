@@ -1,37 +1,39 @@
+<div align="center">
+
+<img src="build/icon.png" alt="RunBay" width="96" />
+
 # RunBay
 
-**Not an installer. A launcher.**
+**Pas un installateur. Un lanceur.**
 
-Package managers are great at installing things. They are terrible at showing you what you already have, letting you run it, and telling you what's out of date. RunBay fixes that: it finds every app and CLI you installed from the command line — **npm, pnpm, yarn, bun, scoop** — and puts them in one fast, modern window.
+**Français** · [English](README.en.md)
 
-## Install
+</div>
 
-```bash
-npm install -g runbay    # then start it with: runbay
-```
+Les gestionnaires de paquets installent très bien les choses. Ils sont terribles pour vous montrer ce que vous avez **déjà**, vous permettre de le lancer, et vous dire ce qui n'est pas à jour. **RunBay** corrige ça : il détecte toutes les apps et CLI installées en ligne de commande — **npm, pnpm, yarn, bun, scoop** — et les réunit dans une seule fenêtre, rapide et moderne.
 
-or just try it once:
+## 🖥️ L'interface
 
-```bash
-npx runbay
-```
+![Fenêtre principale de RunBay](assets/screenshots/main.png)
 
-RunBay **updates itself**: when a newer version lands on npm, a yellow dot appears in the app — one click reinstalls and restarts. No manual `npm update -g`, no forgetting.
+## ✨ Fonctionnalités
 
-## What it does
+- **Détection** de tout ce qui est installé via les gestionnaires réellement présents sur votre machine — rien d'inventé, RunBay lit ce que vos gestionnaires savent déjà
+- **Lancement** en un clic — les CLI interactifs s'ouvrent dans une vraie console
+- **Mises à jour** uniquement quand une version plus récente existe vraiment — avec *Update all*, et *ignorer cette version* quand la notif devient insistante
+- **Désinstallation** avec un vrai dialogue de confirmation, jamais un clic de trop
+- **Raccourcis bureau** pour les outils que vous utilisez tous les jours
+- **Panneau de détail** : description, page d'accueil, binaires exposés, emplacement d'installation
+- **Mode tray** : fermez la fenêtre, RunBay continue de scanner discrètement et vous prévient quand quelque chose peut être mis à jour
+- **Thèmes clair et sombre**, barre latérale repliable, recherche instantanée, couleurs par source
 
-- 🔍 **Detects** everything installed through the package managers actually present on your machine
-- ▶ **Launches** any of them in one click — interactive CLIs open in a real console
-- ⬆ **Updates** only when a newer version actually exists — with *Update all*, and *ignore this version* when you don't want the nag
-- 🗑 **Uninstalls** with a real confirmation dialog, never an accidental click
-- 📌 **Desktop shortcuts** for the tools you use every day
-- 🧰 **Detail panel**: description, homepage, exposed binaries, install location
-- 🕐 **Tray mode**: close the window and RunBay keeps scanning quietly, then notifies you when something can be updated
-- 🌗 Light and dark themes, collapsible sidebar, search, per-source colors
+## 🔄 RunBay se met à jour tout seul
 
-## Supported sources
+Quand une nouvelle version arrive sur npm, un point jaune apparaît dans l'app. Un clic : réinstallation et relance automatiques. Plus besoin de penser à `npm update -g`.
 
-| Source | Detect | Launch | Uninstall | Update |
+## 📦 Sources supportées
+
+| Source | Détection | Lancement | Désinstallation | Mise à jour |
 |---|---|---|---|---|
 | npm (global) | ✅ | ✅ | ✅ | ✅ |
 | pnpm (global) | ✅ | ✅ | ✅ | ✅ |
@@ -39,21 +41,56 @@ RunBay **updates itself**: when a newer version lands on npm, a yellow dot appea
 | bun (global) | ✅ | ✅ | ✅ | ✅ |
 | scoop | ✅ | ✅ | ✅ | ✅ |
 
-Each source is an isolated **provider** (`src/main/providers/`): adding a new one means adding one file that implements the `Provider` interface.
+## ⚙️ Installation
 
-## Why "not an installer"
+> **Prérequis : [Node.js](https://nodejs.org) doit être installé** (version LTS recommandée). C'est indispensable — sans Node.js, RunBay ne peut ni s'installer ni se lancer.
 
-An installer adds things to your machine. A launcher gets you *to* the things you already have. RunBay never installs anything for you — it reads what npm, pnpm, yarn, bun and scoop already know, and turns that list into a place you can actually work: launch, update, remove, shortcut. The command line stays your install tool; RunBay is your run tool.
+RunBay se distribue via npm (pas d'installeur, pas de SmartScreen) :
 
-## Development
+```bash
+npm install -g runbay
+runbay
+```
+
+Ou pour essayer une seule fois, sans rien installer :
+
+```bash
+npx runbay
+```
+
+## 🔧 L'usage au quotidien
+
+Sélectionnez une app pour ouvrir son détail — version, source, emplacement, binaires exposés — puis lancez, créez un raccourci, désinstallez.
+
+![Panneau de détail](assets/screenshots/detail.png)
+
+Le clic droit ouvre un menu classé par intention : *Run*, *Manage*.
+
+![Menu contextuel](assets/screenshots/context.png)
+
+Le bouton **Options** regroupe les réglages : thème, démarrage, tray, guide de bienvenue — et la mise à jour de RunBay lui-même.
+
+![Menu Options](assets/screenshots/options.png)
+
+## 🧩 Pourquoi « pas un installateur »
+
+Un installateur ajoute des choses à votre machine. Un lanceur vous *amène* à ce que vous avez déjà. RunBay n'installe jamais rien à votre place — il lit ce que npm, pnpm, yarn, bun et scoop savent déjà, et transforme cette liste en un endroit où l'on peut travailler : lancer, mettre à jour, retirer, créer un raccourci. La ligne de commande reste votre outil d'installation ; RunBay est votre outil de lancement.
+
+## 👨‍💻 Développement
 
 ```bash
 npm install
-npm run dev          # run the app with hot reload
-npm run typecheck    # check types
-npm run build        # production renderer/main/preload bundles
-npm run package:win  # build a Windows installer (electron-builder)
+npm run dev          # l'app avec rechargement à chaud
+npm run typecheck    # vérification des types
+npm run build        # bundles de production
+npm run package:win  # installeur Windows (electron-builder)
 ```
+
+Chaque source est un **provider** isolé (`src/main/providers/`) : ajouter une nouvelle source = un seul fichier implémentant l'interface `Provider`.
+
+## ☕ Support
+
+[Buy Me a Coffee — skroproduction](https://buymeacoffee.com/skroproduction)
 
 ## License
 

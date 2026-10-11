@@ -39,7 +39,11 @@
     "bun",
     "scoop",
     "electron",
-    "windows"
+    "windows",
+    "desktop-app",
+    "developer-tools",
+    "self-update",
+    "tray"
   ],
   "author": "Jerem (https://github.com/10skro)",
   "license": "MIT",
