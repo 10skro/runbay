@@ -200,7 +200,12 @@ if (isSecondInstance) {
 app.whenReady().then(() => {
   // Seconde instance : rien à initialiser, l'app se quitte juste après le ready.
   if (isSecondInstance) return
-  electronApp.setAppUserModelId('com.jerem.runbay')
+  // Identifiant d'app tout neuf : Windows met en cache l'icône de la barre des
+  // tâches PAR identifiant. « com.jerem.runbay » a tourné de 0.1.0 à 0.1.6
+  // sans icône — l'icône Electron est restée collée au cache, même après la
+  // correction 0.1.7. Un identifiant vierge repart d'un cache vierge : la
+  // bonne icône s'affiche sans rien toucher sur la machine de l'utilisateur.
+  electronApp.setAppUserModelId('com.skrodu.runbay')
   loadSettings()
   // Pas de menu par défaut (il serait traduit dans la langue du système et jure avec l'app).
   // Les raccourcis F5 / Ctrl+R / F12 restent actifs via optimizer.watchWindowShortcuts.

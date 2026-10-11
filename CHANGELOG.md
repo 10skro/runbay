@@ -4,6 +4,12 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.9] - 2026-10-11
+
+### Fixed
+
+- Taskbar and title-bar icon: Windows caches taskbar icons per application identifier, and the old Electron icon stayed stuck in that cache from earlier versions. RunBay now uses a fresh identifier, so the correct icon appears without touching anything on the user's machine
+
 ## [0.1.8] - 2026-10-11
 
 ### Fixed
