@@ -138,10 +138,14 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
   const install = `call npm install -g ${PKG}@${target}${registryFlag}`
   const body = [
     '@echo off',
-    'ping -n 5 127.0.0.1 >nul', // le temps que l'app se ferme et relâche ses fichiers
-    `${install} > "${log}" 2>&1`,
-    'if errorlevel 1 (',
-    '  ping -n 31 127.0.0.1 >nul', // le registre met parfois une minute à propager une publication prouvée
+    'ping -n 9 127.0.0.1 >nul', // le temps que l'app se ferme ET que Windows relâche ses fichiers
+    // `||` et non « if errorlevel 1 » : npm sort en code NÉGatif sur EBUSY
+    // (-4082), qu'« errorlevel 1 » (qui teste « ≥ 1 ») ne voyait pas comme une
+    // erreur — la seconde tentative ne partait jamais. Tout code non nul = on
+    // retente, en ligne cette fois (fichiers pas encore relâchés, cache périmé,
+    // registre pas encore propagé).
+    `${install} > "${log}" 2>&1 || (`,
+    '  ping -n 31 127.0.0.1 >nul',
     `${install} --prefer-online >> "${log}" 2>&1`,
     ')',
     relaunch,

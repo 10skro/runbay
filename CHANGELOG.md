@@ -4,6 +4,12 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.8] - 2026-10-11
+
+### Fixed
+
+- Self-update: the retry after a failure now actually runs. npm exits with a negative code when files are still locked (EBUSY), which the old check treated as a success — the app could restart without being updated. Any failure now triggers a second attempt, and the first attempt waits longer for Windows to release the app's files
+
 ## [0.1.7] - 2026-10-11
 
 ### Fixed
