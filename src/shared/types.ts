@@ -86,6 +86,8 @@ export interface RunBayApi {
   foregroundOnStart(value?: boolean): Promise<boolean>
   /** Thème d'apparence : idem lecture/écriture, renvoie toujours le thème courant. */
   theme(value?: 'dark' | 'light'): Promise<'dark' | 'light'>
+  /** Version courante de RunBay, affichée discrètement dans l'interface. */
+  appVersion(): Promise<string>
   /** Mise à jour de RunBay via npm : état connu, vérification manuelle, application. */
   selfUpdateStatus(): Promise<SelfUpdate | null>
   checkSelfUpdate(): Promise<SelfUpdate | null>

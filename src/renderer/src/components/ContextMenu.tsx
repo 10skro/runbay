@@ -11,7 +11,9 @@ export interface MenuItem {
   toggle?: boolean
   /** Infobulle explicative au survol (même moteur que le reste de l'UI). */
   tip?: string
-  onSelect: () => void
+  /** Entrée d'information pure (ex. numéro de version) : grise, non cliquable. */
+  disabled?: boolean
+  onSelect?: () => void
 }
 
 export interface MenuSection {
@@ -68,13 +70,14 @@ export default function ContextMenu({
           {section.items.map((item) => (
             <button
               key={item.label}
-              className={item.danger ? 'danger' : item.highlight ? 'highlight' : ''}
+              className={item.disabled ? 'disabled' : item.danger ? 'danger' : item.highlight ? 'highlight' : ''}
               data-tip={item.tip}
+              disabled={item.disabled}
               onClick={() => {
                 // Un réglage « interrupteur » ne ferme pas le menu : on peut
                 // enchaîner plusieurs changements. Une action, elle, le ferme.
                 if (item.toggle === undefined) onClose()
-                item.onSelect()
+                item.onSelect?.()
               }}
             >
               {item.icon && <Icon name={item.icon} size={14} />}

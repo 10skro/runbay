@@ -179,6 +179,7 @@ export function registerIpc(hooks: MainHooks): void {
 
   // Mise à jour de RunBay lui-même (via npm) : état connu, vérification à la demande,
   // application. Le résultat de l'application revient au renderer (toast + redémarrage).
+  ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('update:self:status', () => selfUpdateStatus())
   ipcMain.handle('update:self:check', () => checkSelfUpdate())
   ipcMain.handle('update:self:apply', () => applySelfUpdate())

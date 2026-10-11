@@ -19,6 +19,7 @@ const api: RunBayApi = {
   welcomeAtStartup: (value) => ipcRenderer.invoke('settings:welcome', value),
   foregroundOnStart: (value) => ipcRenderer.invoke('settings:foreground', value),
   theme: (value) => ipcRenderer.invoke('settings:theme', value),
+  appVersion: () => ipcRenderer.invoke('app:version'),
   selfUpdateStatus: () => ipcRenderer.invoke('update:self:status'),
   checkSelfUpdate: () => ipcRenderer.invoke('update:self:check'),
   applySelfUpdate: () => ipcRenderer.invoke('update:self:apply'),

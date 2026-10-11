@@ -53,6 +53,13 @@ export default function Sidebar({
   onQuit
 }: Props): ReactElement {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const [version, setVersion] = useState('')
+
+  // Version installée de RunBay : une seule lecture au montage, affichée en
+  // bas de la barre latérale et dans le menu Options.
+  useEffect(() => {
+    void window.api.appVersion().then(setVersion)
+  }, [])
 
   // Fermeture du menu Options : clic ailleurs ou Échap. Le clic sur le bouton
   // Options est exclu : c'est openOptions qui gère le basculement ouverture/fermeture.
@@ -86,6 +93,13 @@ export default function Sidebar({
   // Mise à jour de RunBay lui-même (via npm) : l'entrée « Update » n'apparaît
   // que si une version plus récente existe réellement — jamais de faux signal.
   const runBayItems: MenuItem[] = []
+  if (version) {
+    runBayItems.push({
+      label: `Version ${version}`,
+      disabled: true,
+      tip: 'This is the version currently running'
+    })
+  }
   if (selfUpdate) {
     runBayItems.push({
       label: selfUpdating ? 'Updating RunBay…' : `Update RunBay to v${selfUpdate.latest}`,
@@ -302,6 +316,7 @@ export default function Sidebar({
             &nbsp;Options
           </button>
         )}
+        {version && !collapsed && <span className="version">RunBay v{version}</span>}
       </div>
 
       {menu && (

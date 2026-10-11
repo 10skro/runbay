@@ -9,7 +9,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write # création des GitHub Releases automatiques
   id-token: write # jeton OIDC pour l'attestation npm
   attestations: write # provenance du paquet publié
 
@@ -39,3 +39,15 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm publish --provenance --access public
+
+      - name: GitHub Release (notes reprises de CHANGELOG.md)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=${GITHUB_REF_NAME#v}
+          awk -v v="$tag" '/^## /{p=($0 ~ "## \\[" v "\\]")} p' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" --title "RunBay $tag" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "RunBay $tag" --generate-notes
+          fi

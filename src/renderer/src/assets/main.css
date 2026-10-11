@@ -364,6 +364,13 @@ input {
   justify-content: center;
 }
 
+/* Version installée de RunBay : visible sans avoir à chercher dans les menus. */
+.sidebar-footer .version {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
 /* Signal de mise à jour de RunBay sur le bouton Options : même jaune et même
    halo pulsé que les mises à jour d'applications — un jaune veut toujours
    dire « une information attend », jamais un simple décor. */
@@ -1203,6 +1210,14 @@ button.rail-badge.neutral:hover {
 .ctx-menu button.highlight,
 .ctx-menu button.highlight svg {
   color: var(--warning);
+}
+
+/* Entrée d'information pure (ex. version de RunBay) : grise, non cliquable. */
+.ctx-menu button:disabled,
+.ctx-menu button:disabled:hover {
+  color: var(--text-dim);
+  background: transparent;
+  cursor: default;
 }
 
 /* Interrupteur on/off d'un réglage, aligné à droite de l'entrée. */
