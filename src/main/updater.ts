@@ -137,7 +137,8 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
   ].join('\r\n')
   try {
     writeFileSync(script, body)
-    spawn(script, { detached: true, stdio: 'ignore', windowsHide: true }).unref()
+    // Node refuse de lancer un .cmd sans shell (spawn EINVAL) : on passe par cmd.exe.
+    spawn(`"${script}"`, { detached: true, stdio: 'ignore', windowsHide: true, shell: true }).unref()
   } catch (err) {
     return { state: 'error', message: err instanceof Error ? err.message : String(err) }
   }

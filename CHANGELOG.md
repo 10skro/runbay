@@ -4,6 +4,12 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.4] - 2026-10-11
+
+### Fixed
+
+- Self-update: the detached install helper could not start on recent Node versions (`spawn EINVAL` — `.cmd` files now require a shell), so the update never began. It now launches correctly: RunBay closes, installs, and restarts on its own
+
 ## [0.1.3] - 2026-10-11
 
 ### Added
