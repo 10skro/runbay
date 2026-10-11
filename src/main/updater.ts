@@ -1,5 +1,7 @@
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { run } from './providers/util'
 
 /**
@@ -14,9 +16,6 @@ import { run } from './providers/util'
 const REGISTRY = process.env.RUNBAY_REGISTRY ?? 'https://registry.npmjs.org'
 const PKG = 'runbay'
 const SIM_CMD = process.env.RUNBAY_SELFUPDATE_CMD
-// En mode simulation, pas de redémarrage automatique : en dev, l'app redémarrée
-// hors du watcher perdrait le serveur de dev (fenêtre blanche).
-const SIMULATED = !!SIM_CMD
 
 export interface SelfUpdate {
   current: string
@@ -63,53 +62,87 @@ export async function checkSelfUpdate(): Promise<SelfUpdate | null> {
   return available
 }
 
-/** RunBay est-il installé dans la racine globale npm ? Seul ce cas sait se réinstaller seul. */
-async function installedGlobally(): Promise<boolean> {
+/** Racine globale npm, ou null si npm est injoignable. */
+async function globalRoot(): Promise<string | null> {
   try {
-    const root = (await run('npm', ['root', '-g'], { shim: true, timeout: 30_000 })).trim()
-    return app.getAppPath().toLowerCase().startsWith(root.toLowerCase())
+    return (await run('npm', ['root', '-g'], { shim: true, timeout: 30_000 })).trim()
   } catch {
-    return false
+    return null
   }
 }
 
+/** RunBay est-il installé dans la racine globale npm ? Seul ce cas sait se réinstaller seul. */
+async function installedGlobally(): Promise<boolean> {
+  const root = await globalRoot()
+  return !!root && app.getAppPath().toLowerCase().startsWith(root.toLowerCase())
+}
+
+function runCommand(command: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, { shell: true, windowsHide: true })
+    const timer = setTimeout(() => {
+      child.kill()
+      reject(new Error('npm timed out'))
+    }, 5 * 60_000)
+    child.on('error', reject)
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      if (code === 0) resolve()
+      else reject(new Error(`npm exited with code ${code}`))
+    })
+  })
+}
+
 /**
- * Applique la mise à jour : réinstallation via npm, puis redémarrage différé
- * (le temps que le toast « updated » s'affiche). Hors installation globale
- * (dev, npx), on renvoie la commande à exécuter manuellement.
+ * Applique la mise à jour. L'app ne peut pas se réinstaller elle-même pendant
+ * qu'elle tourne : Windows verrouille ses propres fichiers (EBUSY sur le
+ * electron.exe en cours). On délègue donc à un script détaché : il attend la
+ * fermeture de l'app, installe (seconde tentative si le registre n'a pas
+ * encore propagé la version), puis relance RunBay. La sortie npm est écrite
+ * dans update.log (dossier de données de l'app) pour le diagnostic.
+ * Hors installation globale (dev, npx), on renvoie la commande manuelle.
  */
 export async function applySelfUpdate(): Promise<ApplyResult> {
   if (!available) return { state: 'error', message: 'No update pending' }
   const target = available.latest
   const registryFlag = REGISTRY === 'https://registry.npmjs.org' ? '' : ` --registry "${REGISTRY}"`
-  const command =
-    SIM_CMD ?? ((await installedGlobally()) ? `npm install -g ${PKG}@latest${registryFlag}` : null)
-  if (!command) {
-    // Installé ailleurs qu'en global (dev, npx) : l'app ne peut pas se remplacer elle-même.
+  if (SIM_CMD) {
+    try {
+      await runCommand(SIM_CMD)
+    } catch (err) {
+      return { state: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+    available = null
+    return { state: 'done', message: `Updated to ${target} — restart to apply` }
+  }
+  if (!(await installedGlobally())) {
     return { state: 'manual', message: `npm install -g ${PKG}@latest` }
   }
+  const root = (await globalRoot()) as string
+  const shim = join(dirname(root), `${PKG}.cmd`) // le lanceur posé par npm dans le PATH
+  const script = join(app.getPath('userData'), 'update.cmd')
+  const log = join(app.getPath('userData'), 'update.log')
+  const install = `call npm install -g ${PKG}@latest${registryFlag}`
+  const body = [
+    '@echo off',
+    'ping -n 5 127.0.0.1 >nul', // le temps que l'app se ferme et relâche ses fichiers
+    `${install} > "${log}" 2>&1`,
+    'if errorlevel 1 (',
+    '  ping -n 31 127.0.0.1 >nul', // le registre met parfois une minute à propager une publication prouvée
+    `${install} --prefer-online >> "${log}" 2>&1`,
+    ')',
+    `start "" "${shim}"`,
+    'del "%~f0"',
+    ''
+  ].join('\r\n')
   try {
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(command, { shell: true, windowsHide: true })
-      const timer = setTimeout(() => {
-        child.kill()
-        reject(new Error('npm timed out'))
-      }, 5 * 60_000)
-      child.on('error', reject)
-      child.on('close', (code) => {
-        clearTimeout(timer)
-        if (code === 0) resolve()
-        else reject(new Error(`npm exited with code ${code}`))
-      })
-    })
+    writeFileSync(script, body)
+    spawn(script, { detached: true, stdio: 'ignore', windowsHide: true }).unref()
   } catch (err) {
     return { state: 'error', message: err instanceof Error ? err.message : String(err) }
   }
   available = null
-  if (SIMULATED) return { state: 'done', message: `Updated to ${target} — restart to apply` }
-  setTimeout(() => {
-    app.relaunch()
-    app.quit()
-  }, 1500)
-  return { state: 'done', message: `Updated to ${target} — restarting…` }
+  // Le temps que le toast s'affiche, puis on se ferme : le script prend le relais.
+  setTimeout(() => app.quit(), 1500)
+  return { state: 'done', message: `Updating to ${target} — restarting…` }
 }
