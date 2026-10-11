@@ -8,8 +8,8 @@ import { store } from './store'
 /**
  * Icônes d'applications — approche « best effort » :
  * les gestionnaires de paquets CLI n'embarquent pas d'icône, mais beaucoup
- * de paquets exposent un `homepage`. On en déduit le logo réel (avatar du
- * dépôt GitHub ou favicon du site), téléchargé une seule fois puis servi
+ * de paquets exposent un `homepage`. On en déduit le logo réel (aperçu social
+ * du dépôt GitHub ou favicon du site), téléchargé une seule fois puis servi
  * depuis le cache disque. Sans homepage ni logo trouvable : null, et le
  * renderer affiche son monogramme en fallback.
  */
@@ -49,7 +49,9 @@ function cachedIcon(key: string, candidates: () => Promise<string[]>): Promise<s
 
 async function resolve(key: string, candidates: () => Promise<string[]>): Promise<string | null> {
   const cacheDir = join(app.getPath('userData'), 'icon-cache')
-  const cacheFile = join(cacheDir, createHash('sha1').update(key).digest('hex'))
+  // « v2: » = version du pipeline de résolution ; invalide les anciens caches
+  // quand l'ordre des candidats change (ex. aperçu social GitHub en premier).
+  const cacheFile = join(cacheDir, createHash('sha1').update(`v2:${key}`).digest('hex'))
   if (existsSync(cacheFile)) return toDataUrl(readFileSync(cacheFile))
 
   for (const url of await candidates()) {
@@ -74,10 +76,12 @@ async function iconCandidates(homepage: string): Promise<string[]> {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return []
   const host = url.hostname.toLowerCase()
 
-  // GitHub : l'avatar de l'owner du dépôt est le logo le plus proche du projet.
+  // GitHub : l'aperçu social du dépôt (github.com/o/r.png) si le projet en a
+  // défini un — c'est l'icône la plus fidèle. Sinon, l'avatar de l'owner.
   if (host === 'github.com' || host === 'www.github.com') {
     const repo = url.pathname.match(/^\/([^/]+)\/([^/]+)/)
     if (!repo) return []
+    const candidates = [`https://github.com/${repo[1]}/${repo[2]}.png`]
     try {
       const res = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}`, {
         headers: { 'user-agent': 'runbay' },
@@ -85,12 +89,12 @@ async function iconCandidates(homepage: string): Promise<string[]> {
       })
       if (res.ok) {
         const json = (await res.json()) as { owner?: { avatar_url?: string } }
-        if (json.owner?.avatar_url) return [json.owner.avatar_url]
+        if (json.owner?.avatar_url) candidates.push(json.owner.avatar_url)
       }
     } catch {
       /* hors ligne / rate limit → fallback monogramme */
     }
-    return []
+    return candidates
   }
 
   // Site classique : favicon direct d'abord, service Google en secours.
