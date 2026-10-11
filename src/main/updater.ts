@@ -116,13 +116,17 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
     return { state: 'done', message: `Updated to ${target} — restart to apply` }
   }
   if (!(await installedGlobally())) {
-    return { state: 'manual', message: `npm install -g ${PKG}@latest` }
+    return { state: 'manual', message: `npm install -g ${PKG}@${target}` }
   }
   const root = (await globalRoot()) as string
   const shim = join(dirname(root), `${PKG}.cmd`) // le lanceur posé par npm dans le PATH
   const script = join(app.getPath('userData'), 'update.cmd')
   const log = join(app.getPath('userData'), 'update.log')
-  const install = `call npm install -g ${PKG}@latest${registryFlag}`
+  // Version exacte détectée, jamais @latest : un cache npm local périmé résoudrait
+  // @latest vers l'ancienne version sans erreur — donc sans rien installer. Une
+  // version introuvable dans le cache échoue (ETARGET) et la seconde tentative,
+  // en ligne, corrige.
+  const install = `call npm install -g ${PKG}@${target}${registryFlag}`
   const body = [
     '@echo off',
     'ping -n 5 127.0.0.1 >nul', // le temps que l'app se ferme et relâche ses fichiers

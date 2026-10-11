@@ -4,6 +4,17 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.5] - 2026-10-11
+
+### Changed
+
+- Apps that declare no homepage now use their repository URL as their identity: their real logo (GitHub social preview, then owner avatar) is found instead of falling back to a letter monogram
+- Icon cache: entries older than a week are re-checked, so a social preview added after the fact is picked up automatically
+
+### Fixed
+
+- Self-update: installs the exact detected version instead of `@latest` — a stale local npm cache could silently resolve `@latest` to the old version and change nothing
+
 ## [0.1.4] - 2026-10-11
 
 ### Fixed

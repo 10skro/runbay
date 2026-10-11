@@ -1,17 +1,18 @@
 import { app } from 'electron'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ProviderId } from '../shared/types'
 import { store } from './store'
 
 /**
  * Icônes d'applications — approche « best effort » :
- * les gestionnaires de paquets CLI n'embarquent pas d'icône, mais beaucoup
- * de paquets exposent un `homepage`. On en déduit le logo réel (aperçu social
- * du dépôt GitHub ou favicon du site), téléchargé une seule fois puis servi
- * depuis le cache disque. Sans homepage ni logo trouvable : null, et le
- * renderer affiche son monogramme en fallback.
+ * les gestionnaires de paquets CLI n'embarquent pas d'icône, mais les paquets
+ * déclarent en général une `homepage` ou à défaut un dépôt. On en déduit le
+ * logo réel (aperçu social du dépôt GitHub, avatar de l'owner, favicon du site),
+ * téléchargé une seule fois puis resservi depuis le cache disque, retenté au
+ * bout d'une semaine — un aperçu social peut être ajouté après notre passage.
+ * Rien de trouvable : null, et le renderer affiche son monogramme en fallback.
  */
 
 // Logos des gestionnaires eux-mêmes : favicon du site officiel de chaque source.
@@ -49,10 +50,13 @@ function cachedIcon(key: string, candidates: () => Promise<string[]>): Promise<s
 
 async function resolve(key: string, candidates: () => Promise<string[]>): Promise<string | null> {
   const cacheDir = join(app.getPath('userData'), 'icon-cache')
-  // « v2: » = version du pipeline de résolution ; invalide les anciens caches
-  // quand l'ordre des candidats change (ex. aperçu social GitHub en premier).
-  const cacheFile = join(cacheDir, createHash('sha1').update(`v2:${key}`).digest('hex'))
-  if (existsSync(cacheFile)) return toDataUrl(readFileSync(cacheFile))
+  // « v3: » = version du pipeline de résolution (URL du dépôt en repli de homepage) ;
+  // invalide les anciens caches quand l'ordre des candidats change.
+  const cacheFile = join(cacheDir, createHash('sha1').update(`v3:${key}`).digest('hex'))
+  // Un aperçu social GitHub peut être ajouté après notre premier passage : une
+  // entrée de plus d'une semaine est retentée au lieu d'être resservie.
+  if (existsSync(cacheFile) && Date.now() - statSync(cacheFile).mtimeMs < 7 * 24 * 3600_000)
+    return toDataUrl(readFileSync(cacheFile))
 
   for (const url of await candidates()) {
     const buf = await download(url)

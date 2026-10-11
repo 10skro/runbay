@@ -78,6 +78,29 @@ export interface PkgMeta {
   bins: string[]
 }
 
+/**
+ * URL du dépôt normalisée en https (formats git+https://, git@hôte:…, suffixe .git).
+ * Sert d'identité au paquet quand il ne déclare pas de homepage : c'est elle
+ * qui permet de trouver son logo (aperçu social GitHub, favicon du site).
+ */
+function repoUrl(pkg: Record<string, unknown>): string | undefined {
+  const repo = pkg.repository as { url?: unknown } | string | undefined
+  const raw = typeof repo === 'string' ? repo : typeof repo?.url === 'string' ? repo.url : undefined
+  if (!raw) return undefined
+  let url = raw.trim().replace(/^git\+/, '')
+  const ssh = url.match(/^ssh:\/\/git@([^/]+)\/(.+)$/) // ssh://git@hôte/…
+  if (ssh) url = `https://${ssh[1]}/${ssh[2]}`
+  const scp = url.match(/^git@([^:/]+)[:/](.+)$/) // git@hôte:… (format scp)
+  if (scp) url = `https://${scp[1]}/${scp[2]}`
+  url = url.replace(/\.git$/, '').replace(/\/+$/, '')
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? url : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** Lit le package.json d'un paquet global et en extrait tout ce dont l'UI a besoin. */
 export async function readPkgMeta(dir: string | undefined, pkgName: string): Promise<PkgMeta> {
   const pkg = dir ? ((await readPackageJson(dir)) ?? {}) : {}
@@ -90,7 +113,7 @@ export async function readPkgMeta(dir: string | undefined, pkgName: string): Pro
   return {
     version: typeof pkg.version === 'string' ? pkg.version : undefined,
     description: typeof pkg.description === 'string' ? pkg.description : undefined,
-    homepage: typeof pkg.homepage === 'string' ? pkg.homepage : undefined,
+    homepage: typeof pkg.homepage === 'string' ? pkg.homepage : repoUrl(pkg),
     bins
   }
 }
