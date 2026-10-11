@@ -1,0 +1,22 @@
+appId: com.jerem.runbay
+productName: RunBay
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.gitignore,README.md}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+win:
+  icon: build/icon.ico
+  target:
+    - nsis
+# L'icône 256px est copiée à côté des ressources : le tray en a besoin empaqueté.
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true

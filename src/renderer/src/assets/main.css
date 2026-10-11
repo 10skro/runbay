@@ -1,0 +1,1521 @@
+/* ============================================================
+   RunBay — design system sobre et professionnel
+   Palette neutre, un seul accent, couleurs réservées aux états.
+   Animations courtes et discrètes, pilotées par des tokens.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #111214;
+  --bg-side: #16171a;
+  --bg-card: #1a1c1f;
+  --bg-hover: #212327;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #e4e6e8;
+  --text-dim: #94989e;
+
+  /* Un seul accent, désaturé (bleu acier) */
+  --accent: #5f8fb8;
+  --accent-soft: rgba(95, 143, 184, 0.16);
+  --accent-glow: rgba(95, 143, 184, 0.35);
+
+  /* Couleurs sémantiques — uniquement pour des états */
+  --danger: #c25b52;
+  --success: #52a06e;
+  --warning: #b8963f;
+
+  /* Couleurs par source — assombries par le thème clair, jamais le JS. */
+  --pc-npm: #c9574f;
+  --pc-pnpm: #e0913f;
+  --pc-yarn: #4d90bd;
+  --pc-bun: #b89374;
+  --pc-scoop: #67a05f;
+
+  /* Voiles discrets, ascenseurs, spinner, ombres — tout dépend du thème. */
+  --tint-soft: rgba(255, 255, 255, 0.05);
+  --tint: rgba(255, 255, 255, 0.06);
+  --tint-strong: rgba(255, 255, 255, 0.08);
+  --tint-hover: rgba(255, 255, 255, 0.1);
+  --scroll: rgba(255, 255, 255, 0.12);
+  --scroll-hover: rgba(255, 255, 255, 0.22);
+  --spinner-track: rgba(255, 255, 255, 0.15);
+  --shadow-panel: -14px 0 36px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-ctx: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-tip: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --backdrop: rgba(0, 0, 0, 0.55);
+
+  --radius: 4px;
+  --radius-lg: 6px;
+
+  /* Rythme unique pour toutes les micro-interactions */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ============================================================
+   Thème clair — même langage visuel que le sombre : gris neutres,
+   un seul accent acier, couleurs réservées aux sources et aux états.
+   Activé par data-theme="light" sur <html> (réglage Options).
+   ============================================================ */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f5f6f7;
+  --bg-side: #eceef0;
+  --bg-card: #ffffff;
+  --bg-hover: #e6e8eb;
+  --border: rgba(20, 24, 28, 0.12);
+  --border-strong: rgba(20, 24, 28, 0.22);
+  --text: #16181b;
+  --text-dim: #565c63;
+
+  --accent: #35688c;
+  --accent-soft: rgba(53, 104, 140, 0.13);
+  --accent-glow: rgba(53, 104, 140, 0.3);
+
+  --danger: #b0453c;
+  --success: #3e7f52;
+  --warning: #8a6d1f;
+
+  /* Mêmes teintes que le sombre, assombries pour rester lisibles sur fond clair. */
+  --pc-npm: #b5463e;
+  --pc-pnpm: #a06a1c;
+  --pc-yarn: #2e77ab;
+  --pc-bun: #7d5f45;
+  --pc-scoop: #457a3e;
+
+  --tint-soft: rgba(20, 24, 28, 0.05);
+  --tint: rgba(20, 24, 28, 0.07);
+  --tint-strong: rgba(20, 24, 28, 0.09);
+  --tint-hover: rgba(20, 24, 28, 0.12);
+  --scroll: rgba(20, 24, 28, 0.16);
+  --scroll-hover: rgba(20, 24, 28, 0.28);
+  --spinner-track: rgba(20, 24, 28, 0.18);
+  --shadow-panel: -14px 0 36px rgba(20, 24, 28, 0.1);
+  --shadow-pop: 0 8px 30px rgba(20, 24, 28, 0.13);
+  --shadow-ctx: 0 10px 30px rgba(20, 24, 28, 0.15);
+  --shadow-tip: 0 8px 24px rgba(20, 24, 28, 0.15);
+  --shadow-modal: 0 16px 48px rgba(20, 24, 28, 0.2);
+  --backdrop: rgba(30, 34, 38, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+}
+
+/* Anneau de focus discret mais net (accessibilité clavier) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll);
+  border-radius: 3px;
+  border: 2px solid var(--bg);
+  transition: background var(--dur-fast);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-hover);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  /* Rangée contrainte au viewport : sans ça, une longue liste agrandit la
+     rangée et .list ne déborde jamais → impossible de scroller. */
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  transition: grid-template-columns 0.2s var(--ease);
+}
+
+.layout:has(.detail) {
+  grid-template-columns: 240px 1fr 360px;
+}
+
+/* Sidebar repliée en rail d'icônes (via menu Options). */
+.layout.nav-collapsed {
+  grid-template-columns: 56px 1fr;
+}
+
+.layout.nav-collapsed:has(.detail) {
+  grid-template-columns: 56px 1fr 360px;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  background: var(--bg-side);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 4px 10px 18px;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  transition: filter var(--dur) var(--ease);
+}
+
+.sidebar:hover .brand-mark {
+  filter: brightness(1.18);
+}
+
+.brand h1 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.brand p {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.nav-sep {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 16px 10px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  text-align: left;
+  font-size: 14px;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--bg-hover);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-item.disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Indicateur d'état — carré discret, coloré uniquement si utile */
+.nav-item .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: var(--text-dim);
+  opacity: 0.5;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.nav-item .dot.all {
+  background: var(--text);
+  opacity: 0.7;
+}
+
+/* Filtre Updates : carré vide quand il n'y a rien à mettre à jour.
+   Le jaune (et son halo) n'apparaît que si des mises à jour sont réellement
+   détectées — un point jaune signale toujours une information, jamais un menu. */
+.nav-item .dot.updates {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  opacity: 1;
+}
+
+/* Source détectée : pastille à la couleur de la source. */
+.nav-item .dot.ok {
+  background: var(--pc, var(--text-dim));
+  opacity: 1;
+}
+
+.nav-item .dot.scanning {
+  background: var(--accent);
+  opacity: 1;
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.nav-item .dot.absent {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  opacity: 1;
+}
+
+.nav-item .dot.error {
+  background: var(--danger);
+  opacity: 1;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Source ou filtre contenant des mises à jour : halo pulsé, discret mais visible. */
+.nav-item .dot.has-updates,
+.nav-item .dot.updates.glow {
+  background: var(--warning);
+  border-color: transparent;
+  animation: dot-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes dot-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warning) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+.nav-item .count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-footer .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Signal de mise à jour de RunBay sur le bouton Options : même jaune et même
+   halo pulsé que les mises à jour d'applications — un jaune veut toujours
+   dire « une information attend », jamais un simple décor. */
+.options-btn {
+  position: relative;
+}
+
+.options-btn .self-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--warning);
+  animation: dot-glow 1.8s ease-in-out infinite;
+}
+
+/* --- Sidebar repliée : rail d'icônes, badges lisibles, rien ne déborde. --- */
+.sidebar.collapsed {
+  padding: 16px 8px;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .brand {
+  justify-content: center;
+  padding: 4px 0 18px;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 5px 0;
+}
+
+.sidebar.collapsed .nav-rule {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 4px;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  align-items: center;
+}
+
+/* Badge du rail : initiale de la source à sa couleur, ou icône pour les filtres. */
+.rail-badge {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--pc, var(--text-dim));
+  background: color-mix(in srgb, var(--pc, var(--text-dim)) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pc, var(--text-dim)) 35%, transparent);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+button.rail-badge {
+  padding: 0;
+  cursor: pointer;
+}
+
+.nav-item:hover .rail-badge,
+button.rail-badge:hover {
+  background: color-mix(in srgb, var(--pc, var(--text-dim)) 28%, transparent);
+}
+
+.rail-badge.neutral {
+  color: var(--text-dim);
+  background: var(--tint-soft);
+  border-color: var(--border);
+}
+
+.nav-item:hover .rail-badge.neutral,
+button.rail-badge.neutral:hover {
+  background: var(--tint-hover);
+}
+
+.rail-badge.absent {
+  opacity: 0.3;
+}
+
+.rail-badge.error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.rail-badge.scanning {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+/* Mêmes halos pulsés que les pastilles en mode étendu. */
+.rail-badge.has-updates,
+.rail-badge.glow {
+  animation: dot-glow 1.8s ease-in-out infinite;
+}
+
+.rail-badge img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* Icône de source en mode étendu : logo officiel du gestionnaire
+   (ou initiale), dans un conteneur teinté à sa couleur. Les états
+   (absent, scan, erreur, updates) reprennent la sémantique des pastilles. */
+.p-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--pc, var(--text-dim));
+  background: color-mix(in srgb, var(--pc, var(--text-dim)) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pc, var(--text-dim)) 35%, transparent);
+}
+
+.p-icon img {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+}
+
+.p-icon.idle {
+  opacity: 0.5;
+}
+
+.p-icon.absent {
+  opacity: 0.3;
+}
+
+.p-icon.error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.p-icon.scanning {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.p-icon.has-updates {
+  animation: dot-glow 1.8s ease-in-out infinite;
+}
+
+/* ---------- Main ---------- */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 560px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  color: var(--text-dim);
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+}
+
+.search input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.search .clear {
+  color: var(--text-dim);
+  display: flex;
+  transition: color var(--dur-fast);
+}
+
+.search .clear:hover {
+  color: var(--text);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--spinner-track);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Spinner lisible dans un bouton plein (primaire) et teinté selon l'action (danger). */
+.btn.primary .spinner {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+
+.btn.danger .spinner {
+  border-top-color: var(--danger);
+}
+
+/* ---------- List ---------- */
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px 30px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--dur-fast) var(--ease);
+  animation: row-in 0.28s var(--ease) backwards;
+}
+
+/* Apparition en cascade à chaque (re)montage de la liste */
+.row:nth-child(1) { animation-delay: 0ms; }
+.row:nth-child(2) { animation-delay: 25ms; }
+.row:nth-child(3) { animation-delay: 50ms; }
+.row:nth-child(4) { animation-delay: 75ms; }
+.row:nth-child(5) { animation-delay: 100ms; }
+.row:nth-child(6) { animation-delay: 125ms; }
+.row:nth-child(7) { animation-delay: 150ms; }
+.row:nth-child(8) { animation-delay: 175ms; }
+.row:nth-child(9) { animation-delay: 200ms; }
+.row:nth-child(10) { animation-delay: 225ms; }
+.row:nth-child(n + 11) { animation-delay: 250ms; }
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row.selected {
+  background: var(--bg-hover);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Badge source — neutre, l'info est dans le texte, pas la couleur */
+.badge {
+  flex-shrink: 0;
+  min-width: 56px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  border-radius: var(--radius);
+  color: var(--pc, var(--text-dim));
+  background: color-mix(in srgb, var(--pc, transparent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pc, var(--border)) 35%, var(--border));
+}
+
+.badge.big {
+  font-size: 12px;
+  padding: 5px 13px;
+}
+
+/* Icônes d'applications : logo réel ou monogramme de secours. */
+.app-icon {
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--tint-soft);
+}
+
+.app-monogram {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--pc, var(--text-dim));
+  background: color-mix(in srgb, var(--pc, var(--text-dim)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pc, var(--text-dim)) 35%, transparent);
+}
+
+/* Pendant la recherche du logo : cadre vide, même encombrement. */
+.app-monogram.loading {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: transparent;
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.version {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  font-family: Consolas, monospace;
+}
+
+.outdated {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning);
+  flex-shrink: 0;
+  font-family: Consolas, monospace;
+}
+
+/* Version volontairement ignorée : info visible mais neutre. */
+.ignored {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-family: Consolas, monospace;
+}
+
+.row-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.row:hover .row-actions,
+.row.selected .row-actions {
+  opacity: 1;
+  transform: none;
+}
+
+/* Spinner en remplacement des boutons d'action pendant une opération. */
+.row-busy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.row-busy.update .spinner {
+  border-top-color: var(--accent);
+}
+
+.row-busy.uninstall .spinner {
+  border-top-color: var(--danger);
+}
+
+.row-busy.launch .spinner {
+  border-top-color: var(--success);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.icon-btn:hover {
+  background: var(--tint-strong);
+  color: var(--text);
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.icon-btn.launch:hover {
+  color: var(--accent);
+}
+
+.icon-btn.update:hover {
+  color: var(--warning);
+}
+
+/* Les actions en cours gardent les actions visibles (spinner). */
+.row-actions.always {
+  opacity: 1;
+  transform: none;
+}
+
+.icon-btn.uninstall:hover {
+  color: var(--danger);
+}
+
+/* ---------- Empty state ---------- */
+
+.empty {
+  text-align: center;
+  padding: 90px 20px;
+  color: var(--text-dim);
+  animation: fade-in 0.4s var(--ease);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.empty-mark {
+  font-size: 48px;
+  opacity: 0.2;
+  margin-bottom: 14px;
+}
+
+.empty h2 {
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.empty p {
+  font-size: 14px;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ---------- Detail panel ---------- */
+
+.detail {
+  background: var(--bg-side);
+  border-left: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-panel);
+  animation: slide-in 0.22s var(--ease);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.detail-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-name {
+  font-size: 20px;
+  font-weight: 650;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.detail-version {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 3px;
+  font-family: Consolas, monospace;
+}
+
+.detail-desc {
+  margin-top: 14px;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.55;
+  user-select: text;
+}
+
+.detail-meta {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px 10px;
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.detail-meta dt {
+  color: var(--text-dim);
+}
+
+.detail-meta dd {
+  word-break: break-all;
+  user-select: text;
+}
+
+/* Emplacement : bouton discret qui ouvre l'Explorateur au paquet sélectionné. */
+.detail-meta .path-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  margin: -3px -5px;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  text-align: left;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.detail-meta .path-link:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.detail-meta .path-link svg {
+  flex: none;
+  color: var(--text-dim);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.detail-meta .path-link:hover svg {
+  color: var(--accent);
+}
+
+.detail-meta .path {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+
+.detail-meta .latest {
+  color: var(--warning);
+  font-weight: 600;
+  font-family: Consolas, monospace;
+}
+
+.detail-meta .ignored-note {
+  color: var(--text-dim);
+  font-family: Consolas, monospace;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.primary:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 2px 14px var(--accent-glow);
+}
+
+.btn.danger {
+  color: var(--danger);
+}
+
+.btn.danger:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-card));
+}
+
+/* Variante discrète (annulation) — aucun poids visuel tant qu'on n'y touche pas. */
+.btn.ghost {
+  background: none;
+  border-color: transparent;
+  color: var(--text-dim);
+}
+
+.btn.ghost:hover {
+  background: var(--tint);
+  border-color: transparent;
+  color: var(--text);
+}
+
+/* Format compact pour la barre de confirmation inline des lignes. */
+.btn.sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.btn.secondary {
+  width: 100%;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.btn.link {
+  margin-top: 16px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+}
+
+.btn.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+/* ---------- Toasts ---------- */
+
+.toasts {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 12px 15px;
+  max-width: 400px;
+  box-shadow: var(--shadow-pop);
+  animation: toast-in 0.25s var(--ease);
+  font-size: 14px;
+}
+
+.toast.success {
+  border-left-color: var(--success);
+}
+
+.toast.error {
+  border-left-color: var(--danger);
+}
+
+.toast button {
+  color: var(--text-dim);
+  font-size: 16px;
+  transition: color var(--dur-fast);
+}
+
+.toast button:hover {
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(12px) scale(0.97);
+    opacity: 0;
+  }
+}
+
+/* ---------- Menu contextuel (clic droit sur une ligne) ---------- */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 240px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-ctx);
+  animation: fade-in 0.12s var(--ease) backwards;
+}
+
+.ctx-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 11px;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.ctx-menu button svg {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ctx-menu button:hover {
+  background: var(--bg-hover);
+}
+
+.ctx-menu button.danger,
+.ctx-menu button.danger svg {
+  color: var(--danger);
+}
+
+/* Action notable (mise à jour de RunBay disponible) : même jaune que les pastilles
+   « mise à jour » — le jaune signale partout la même chose : une info attend. */
+.ctx-menu button.highlight,
+.ctx-menu button.highlight svg {
+  color: var(--warning);
+}
+
+/* Interrupteur on/off d'un réglage, aligné à droite de l'entrée. */
+.ctx-switch {
+  margin-left: auto;
+  width: 30px;
+  height: 17px;
+  border-radius: 9px;
+  background: var(--border-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.ctx-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.ctx-switch.on {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.ctx-switch.on::after {
+  transform: translateX(13px);
+  background: var(--accent);
+}
+
+/* Groupes d'actions (Run / Update / Manage) : titres discrets + filet. */
+.ctx-label {
+  padding: 6px 11px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ctx-group + .ctx-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Infobulles (couche globale, moteur lib/tooltip) ---------- */
+
+.tip {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 340px;
+  padding: 7px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-tip);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  pointer-events: none;
+  animation: fade-in var(--dur-fast) var(--ease) backwards;
+}
+
+.tip-text {
+  white-space: pre-line;
+}
+
+.tip kbd {
+  flex: none;
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius);
+}
+
+/* ---------- Confirmation modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--backdrop);
+  animation: fade-in 0.15s var(--ease) backwards;
+}
+
+.modal {
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  padding: 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in 0.18s var(--ease) backwards;
+}
+
+.modal h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.modal p {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 18px;
+  word-break: break-word;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes modal-in {
+  from {
+    transform: scale(0.96) translateY(6px);
+    opacity: 0;
+  }
+}
+
+/* ---------- Guide de bienvenue (wizard) ---------- */
+
+.modal.wizard {
+  position: relative;
+  width: 860px;
+  max-width: calc(100vw - 64px);
+  padding: 0;
+}
+
+.wizard-progress {
+  display: flex;
+  gap: 8px;
+  padding: 26px 32px 0;
+}
+
+.wizard-progress .wdot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition:
+    width var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.wizard-progress .wdot.done {
+  background: var(--text-dim);
+}
+
+.wizard-progress .wdot.on {
+  width: 26px;
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+.wizard-x {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.wizard-body {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 30px 32px 36px;
+  animation: wizard-step-in 0.25s var(--ease) backwards;
+}
+
+@keyframes wizard-step-in {
+  from {
+    transform: translateX(14px);
+    opacity: 0;
+  }
+}
+
+.wizard-art {
+  flex-shrink: 0;
+  width: 320px;
+}
+
+.wizard-art svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.wizard-art .wizard-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 44px 0;
+}
+
+.wizard-logo img {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.wizard-logo strong {
+  font-size: 26px;
+  letter-spacing: 0.5px;
+}
+
+.wizard-logo span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.wizard-text {
+  min-width: 0;
+}
+
+.wizard-text h3 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.wizard-text p {
+  font-size: 14.5px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+
+.wizard-text p b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.wizard-text kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 6px;
+  margin: 0 2px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius);
+}
+
+.wizard-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 32px;
+  border-top: 1px solid var(--border);
+}
+
+.wizard-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wizard-check input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.wizard-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.wizard-nav .btn {
+  padding: 9px 22px;
+  font-size: 14px;
+}
+
+/* ---------- Respect des préférences d'accessibilité ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

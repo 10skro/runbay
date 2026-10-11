@@ -1,0 +1,245 @@
+import { app, BrowserWindow, Menu, Notification, Tray, nativeImage, screen, shell } from 'electron'
+import { join } from 'node:path'
+import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { registerIpc, startScan, broadcast } from './ipc'
+import { loadSettings, saveSettings, settings, type WindowBounds } from './settings'
+import { store } from './store'
+import { checkSelfUpdate } from './updater'
+
+let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let quitting = false
+let closeHintShown = false
+
+const BACKGROUND_SCAN_MS = 30 * 60 * 1000
+
+/** La fenêtre enregistrée touche-t-elle encore un écran branché ? (anti-fantôme multi-moniteur) */
+function isOnScreen(b: WindowBounds): boolean {
+  return screen.getAllDisplays().some((d) => {
+    const wa = d.workArea
+    return (
+      b.x < wa.x + wa.width - 60 &&
+      b.x + b.width > wa.x + 60 &&
+      b.y < wa.y + wa.height - 60 &&
+      b.y + b.height > wa.y + 60
+    )
+  })
+}
+
+function showWindow(): void {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function createWindow(): void {
+  // Géométrie mémorisée si elle est encore valable, sinon dimensions par défaut.
+  const saved = settings.window
+  const bounds = saved && isOnScreen(saved) ? saved : undefined
+  mainWindow = new BrowserWindow({
+    ...(bounds
+      ? { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }
+      : { width: 1240, height: 800 }),
+    minWidth: 940,
+    minHeight: 620,
+    show: false,
+    autoHideMenuBar: true,
+    // Fond peint dans la couleur du thème : pas de flash clair/sombre avant le 1er rendu.
+    backgroundColor: settings.theme === 'light' ? '#f5f6f7' : '#111214',
+    title: 'RunBay',
+    // En dev, l'exe est Electron : on force l'icône du projet (barre de titre + taskbar).
+    // En paqué, l'icône est embarquée dans l'exe par electron-builder.
+    ...(is.dev && { icon: join(__dirname, '../../build/icon.ico') }),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  if (saved?.maximized) mainWindow.maximize()
+
+  // Ouverture : l'option « Open window in foreground » (activée par défaut) force le
+  // premier plan. Windows le refuse aux processus lancés par un processus d'arrière-plan
+  // (verrou de premier plan) — l'astuce alwaysOnTop l'impose quand même.
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow) return
+    if (settings.foregroundOnStart === false) {
+      mainWindow.show()
+      return
+    }
+    mainWindow.setAlwaysOnTop(true)
+    mainWindow.show()
+    mainWindow.setAlwaysOnTop(false)
+    mainWindow.focus()
+  })
+
+  // Mémoire de la géométrie : sauvegarde amortie sur move/resize, restaurée au prochain lancement.
+  let persistTimer: NodeJS.Timeout | undefined
+  const persistGeometry = (): void => {
+    clearTimeout(persistTimer)
+    persistTimer = setTimeout(() => {
+      if (!mainWindow) return
+      const [x, y] = mainWindow.getPosition()
+      const [width, height] = mainWindow.getSize()
+      settings.window = { x, y, width, height, maximized: mainWindow.isMaximized() }
+      saveSettings()
+    }, 400)
+  }
+  mainWindow.on('moved', persistGeometry)
+  mainWindow.on('resized', persistGeometry)
+
+  // Mode fond discret (réglable dans Options) : la croix masque la fenêtre,
+  // l'app reste joignable depuis le tray. Désactivé : la croix quitte l'app.
+  mainWindow.on('close', (e) => {
+    if (quitting || settings.backgroundOnClose === false) return
+    e.preventDefault()
+    mainWindow?.hide()
+    if (!closeHintShown) {
+      closeHintShown = true
+      new Notification({
+        title: 'RunBay is still running',
+        body: 'Find it in the system tray — Quit from the tray menu.'
+      }).show()
+    }
+  })
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+function createTray(): void {
+  // En paqué, l'icône 256px est copiée à côté des ressources par electron-builder.
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'icon.png')
+    : join(__dirname, '../../build/icon.png')
+  tray = new Tray(nativeImage.createFromPath(iconPath))
+  refreshTrayTip()
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Open RunBay', click: showWindow },
+      { label: 'Check for updates', click: () => void startScan(backgroundReport) },
+      { type: 'separator' },
+      {
+        label: 'Quit RunBay',
+        click: () => {
+          quitting = true
+          app.quit()
+        }
+      }
+    ])
+  )
+  tray.on('click', showWindow)
+}
+
+/** Le tray n'existe que si le mode fond est activé (réglable dans Options). */
+function setTrayVisible(visible: boolean): void {
+  if (visible && !tray) createTray()
+  if (!visible && tray) {
+    tray.destroy()
+    tray = null
+  }
+}
+
+/** Infobulle du tray : le nom de l'app, plus le compte des mises à jour en attente. */
+function refreshTrayTip(): void {
+  if (!tray) return
+  const n = store.countUpdatable()
+  tray.setToolTip(n ? `RunBay — ${n} update${n > 1 ? 's' : ''} available` : 'RunBay')
+}
+
+/** Après un scan de fond : notification silencieuse (jamais de focus volé) si des mises à jour sont là. */
+function backgroundReport(): void {
+  const n = store.countUpdatable()
+  if (!n) return
+  if (mainWindow && mainWindow.isVisible() && mainWindow.isFocused()) return
+  new Notification({
+    title: `${n} update${n > 1 ? 's' : ''} available`,
+    body: 'Open RunBay to review them.'
+  }).show()
+}
+
+// Instance unique : lancer le raccourci alors que RunBay tourne déjà (par exemple
+// caché dans le tray) ramène la fenêtre existante au lieu d'ouvrir une seconde
+// instance — qui de plus se disputerait le cache avec la première.
+const isSecondInstance = !app.requestSingleInstanceLock()
+if (isSecondInstance) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    // Même astuce qu'à l'ouverture : Windows refuse le premier plan aux processus d'arrière-plan.
+    mainWindow?.setAlwaysOnTop(settings.foregroundOnStart !== false)
+    showWindow()
+    mainWindow?.setAlwaysOnTop(false)
+  })
+}
+
+app.whenReady().then(() => {
+  // Seconde instance : rien à initialiser, l'app se quitte juste après le ready.
+  if (isSecondInstance) return
+  electronApp.setAppUserModelId('com.jerem.runbay')
+  loadSettings()
+  // Pas de menu par défaut (il serait traduit dans la langue du système et jure avec l'app).
+  // Les raccourcis F5 / Ctrl+R / F12 restent actifs via optimizer.watchWindowShortcuts.
+  Menu.setApplicationMenu(null)
+
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
+
+  registerIpc({ setTrayVisible, onStoreChange: refreshTrayTip })
+  createWindow()
+  setTrayVisible(settings.backgroundOnClose !== false)
+
+  // Mise à jour de RunBay lui-même : vérifiée quelques secondes après l'ouverture
+  // (ne retarde pas l'affichage), puis avec chaque cycle de fond. Une seule
+  // notification par nouvelle version ; le point jaune du menu Options persiste.
+  let selfUpdateNotified: string | null = null
+  const checkSelf = async (): Promise<void> => {
+    const update = await checkSelfUpdate()
+    if (!update) return
+    broadcast('update:self', update)
+    if (update.latest === selfUpdateNotified) return
+    selfUpdateNotified = update.latest
+    new Notification({
+      title: `RunBay ${update.latest} is available`,
+      body: 'Update it from the Options menu.'
+    }).show()
+  }
+  setTimeout(() => void checkSelf(), 4000)
+
+  // Scan périodique uniquement quand la fenêtre est masquée :
+  // jamais de refresh visible pendant que l'utilisateur est dans l'app.
+  setInterval(() => {
+    if (!mainWindow || !mainWindow.isVisible()) {
+      void startScan(backgroundReport)
+      void checkSelf()
+    }
+  }, BACKGROUND_SCAN_MS)
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
+
+app.on('before-quit', () => {
+  quitting = true
+  tray?.destroy()
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
