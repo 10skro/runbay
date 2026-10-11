@@ -1,3 +1,4 @@
+import { app as electronApp } from 'electron'
 import type { AppsBatch, AppInfo, Provider, ProviderStatus } from '../shared/types'
 import { providers } from './providers'
 import { settings } from './settings'
@@ -28,7 +29,12 @@ export async function listProvider(
     ? provider.checkOutdated().catch(() => ({}))
     : Promise.resolve({})
 
-  const apps = await provider.list()
+  // RunBay ne se gère pas elle-même dans la liste : se réinstaller pendant
+  // qu'on tourne est impossible sur Windows (fichiers verrouillés, EBUSY).
+  // Sa propre mise à jour passe par le menu Options, avec le flux sûr
+  // « fermer → installer → relancer ».
+  const self = electronApp.getAppPath().toLowerCase()
+  const apps = (await provider.list()).filter((a) => a.path?.toLowerCase() !== self)
   applyIgnored(apps)
   onBatch?.(apps)
 

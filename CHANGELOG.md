@@ -4,6 +4,13 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.6] - 2026-10-11
+
+### Fixed
+
+- Self-update no longer opens console windows: the helper script now runs in a fully hidden console, and the restart launches the app binary directly — no more windows for the wait, the install or the relaunch
+- RunBay no longer lists itself in the app list: its "Update" action tried to reinstall it while it was running, which is impossible on Windows (EBUSY). Managing the app itself stays in the Options menu, where the flow is safe
+
 ## [0.1.5] - 2026-10-11
 
 ### Changed

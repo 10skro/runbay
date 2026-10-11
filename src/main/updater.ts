@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { run } from './providers/util'
 
@@ -121,7 +121,16 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
   const root = (await globalRoot()) as string
   const shim = join(dirname(root), `${PKG}.cmd`) // le lanceur posé par npm dans le PATH
   const script = join(app.getPath('userData'), 'update.cmd')
+  const vbs = join(app.getPath('userData'), 'update-hidden.vbs')
   const log = join(app.getPath('userData'), 'update.log')
+  // Relancer le binaire Electron directement (comme le fait bin/runbay.js) :
+  // c'est une application graphique, donc aucun window console n'apparaît —
+  // contrairement au shim .cmd, qui en ouvrirait un.
+  const appDir = app.getAppPath()
+  const electronExe = join(appDir, 'node_modules', 'electron', 'dist', 'electron.exe')
+  const relaunch = existsSync(electronExe)
+    ? `start "" "${electronExe}" "${appDir}"`
+    : `start "" "${shim}"`
   // Version exacte détectée, jamais @latest : un cache npm local périmé résoudrait
   // @latest vers l'ancienne version sans erreur — donc sans rien installer. Une
   // version introuvable dans le cache échoue (ETARGET) et la seconde tentative,
@@ -135,14 +144,18 @@ export async function applySelfUpdate(): Promise<ApplyResult> {
     '  ping -n 31 127.0.0.1 >nul', // le registre met parfois une minute à propager une publication prouvée
     `${install} --prefer-online >> "${log}" 2>&1`,
     ')',
-    `start "" "${shim}"`,
+    relaunch,
+    `del "${vbs}"`,
     'del "%~f0"',
     ''
   ].join('\r\n')
   try {
+    // Le script est lancé via wscript (hôte sans fenêtre) avec le style 0 :
+    // sa console est cachée, donc ni l'attente, ni npm, ni le redémarrage
+    // n'affichent de window console. wscript rend la main aussitôt.
+    writeFileSync(vbs, `CreateObject("WScript.Shell").Run """${script}""", 0, False\r\n`)
     writeFileSync(script, body)
-    // Node refuse de lancer un .cmd sans shell (spawn EINVAL) : on passe par cmd.exe.
-    spawn(`"${script}"`, { detached: true, stdio: 'ignore', windowsHide: true, shell: true }).unref()
+    spawn('wscript.exe', [vbs], { stdio: 'ignore' }).unref()
   } catch (err) {
     return { state: 'error', message: err instanceof Error ? err.message : String(err) }
   }
