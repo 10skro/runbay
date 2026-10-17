@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, Notification, Tray, nativeImage, screen, shel
 import { join } from 'node:path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { registerIpc, startScan, broadcast } from './ipc'
+import { loadCache } from './cache'
 import { loadSettings, saveSettings, settings, type WindowBounds } from './settings'
 import { store } from './store'
 import { checkSelfUpdate } from './updater'
@@ -219,6 +220,11 @@ app.whenReady().then(() => {
   if (isSecondInstance) return
   electronApp.setAppUserModelId(APP_ID)
   loadSettings()
+  // Cache de démarrage : le store repart avec le dernier état connu (apps +
+  // statuts), restauré avant la fenêtre. Le premier scan déclenché par la
+  // fenêtre ne fait que le corriger en arrière-plan ; sans cache exploitable,
+  // le comportement reste celui d'un premier lancement.
+  loadCache()
   // Pas de menu par défaut (il serait traduit dans la langue du système et jure avec l'app).
   // Les raccourcis F5 / Ctrl+R / F12 restent actifs via optimizer.watchWindowShortcuts.
   Menu.setApplicationMenu(null)

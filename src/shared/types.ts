@@ -38,6 +38,21 @@ export interface AppsBatch {
   apps: AppInfo[]
 }
 
+/** Dernier état connu d'un provider, tel que persisté dans le cache de démarrage. */
+export interface CachedProvider {
+  status: ProviderStatus
+  apps: AppInfo[]
+}
+
+/** Contenu de runbay-cache.json : le dernier état connu du store, réaffiché
+ *  pendant que le scan complet repart en arrière-plan. Un cache dont le
+ *  schéma (cacheVersion) ne correspond plus est ignoré silencieusement. */
+export interface CacheSnapshot {
+  cacheVersion: number
+  savedAt: number
+  providers: Partial<Record<ProviderId, CachedProvider>>
+}
+
 export type AppEventChannel =
   | 'scan:begin'
   | 'scan:end'

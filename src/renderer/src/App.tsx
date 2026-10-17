@@ -148,16 +148,19 @@ export default function App(): ReactElement {
   // Flux d'événements venant du main process (scan, lots d'apps, actions…).
   useEffect(() => {
     const offs = [
-      window.api.onEvent('scan:begin', () => {
-        setScanning(true)
-        setApps({})
-        setStatuses(INITIAL_STATUSES)
-      }),
+      // La revalidation ne vide plus rien : l'état affiché (éventuellement issu
+      // du cache de démarrage) reste à l'écran ; seuls les lots le corrigeront.
+      window.api.onEvent('scan:begin', () => setScanning(true)),
       window.api.onEvent('scan:end', () => setScanning(false)),
       window.api.onEvent('apps:batch', (data) => {
         const batch = data as AppsBatch
         setApps((prev) => {
-          const next = { ...prev }
+          // Remplacement par provider (miroir de store.replaceAllFor côté main) :
+          // les entrées disparues hors de RunBay (désinstallées à la main pendant
+          // que l'app était fermée) sortent de la liste dès le lot de leur provider.
+          const next: Record<string, AppInfo> = {}
+          for (const [id, app] of Object.entries(prev))
+            if (app.provider !== batch.provider) next[id] = app
           for (const app of batch.apps) next[app.id] = app
           return next
         })

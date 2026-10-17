@@ -5,8 +5,10 @@ import { settings } from './settings'
 
 /** Applique les versions volontairement ignorées : plus de badge ni d'action Update.
  *  L'info reste visible (resta possible via le menu contextuel de la ligne) ;
- *  si une version ENCORE plus récente sort, la mise à jour réapparaît d'elle-même. */
-function applyIgnored(apps: AppInfo[]): void {
+ *  si une version ENCORE plus récente sort, la mise à jour réapparaît d'elle-même.
+ *  Exporté : réappliqué après restauration du cache de démarrage (settings.ignored
+ *  reste autoritaire, le fichier de cache n'est qu'un état provisoire). */
+export function applyIgnored(apps: AppInfo[]): void {
   for (const app of apps) {
     const ignored = settings.ignored[app.id]
     if (ignored && app.latestVersion === ignored) {
@@ -56,14 +58,19 @@ export async function scanAll(
       onStatus({ id: provider.id, state: 'scanning', count: 0 })
       try {
         if (!(await provider.isAvailable())) {
+          // Provider devenu absent depuis le dernier scan : lot vide aussi,
+          // pour que ses apps cachées sortent de la liste (comme à froid).
           onStatus({ id: provider.id, state: 'absent', count: 0 })
+          onBatch({ provider: provider.id, apps: [] })
           return
         }
         // Premier lot + compteur dès que la liste locale est connue ;
         // un second lot enrichi (badges de mise à jour) suit la vérification registre.
+        // Le statut précède le lot : la persistance du cache (ipc) se déclenche
+        // sur le lot et doit trouver un statut déjà « ok » à enregistrer.
         const apps = await listProvider(provider, (partial) => {
-          onBatch({ provider: provider.id, apps: partial })
           onStatus({ id: provider.id, state: 'ok', count: partial.length })
+          onBatch({ provider: provider.id, apps: partial })
         })
         // Second lot uniquement si la vérification a apporté quelque chose (badges, ignorées).
         if (apps.some((a) => a.latestVersion || a.ignoredVersion)) {
@@ -76,6 +83,9 @@ export async function scanAll(
           count: 0,
           error: err instanceof Error ? err.message : String(err)
         })
+        // Échec de liste : rien de confirmé, le comportement à froid (pas de
+        // liste pour ce provider) l'emporte sur le cache.
+        onBatch({ provider: provider.id, apps: [] })
       }
     })
   )

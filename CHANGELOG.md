@@ -4,6 +4,12 @@ All notable changes to RunBay are documented in this file.
 This project follows [semantic versioning](https://semver.org); the sections below
 also feed the GitHub Release notes, generated at publish time.
 
+## [0.1.11] - 2026-10-17
+
+### Added
+
+- Startup cache: RunBay now remembers the last known state (apps, provider statuses, update badges) in its own data folder, and shows it the moment the window opens — no more waiting through a full rescan of every manager at every start. A complete scan still runs right away in the background and corrects the list provider by provider: packages installed while RunBay was closed appear as soon as their manager's scan finishes, and packages uninstalled by hand disappear on their own. A corrupted, truncated or outdated cache is silently ignored — the app simply starts as before. No setting, no network traffic: the cache lives only on your machine
+
 ## [0.1.10] - 2026-10-11
 
 ### Fixed

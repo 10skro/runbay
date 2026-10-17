@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { dirname, isAbsolute, join } from 'node:path'
 import type { ActionEvent, AppAction, ProviderId } from '../shared/types'
+import { saveCache } from './cache'
 import { appIcon, providerIcon } from './icons'
 import { providersById } from './providers'
 import { createDesktopShortcut, errorMessage, which } from './providers/util'
@@ -16,22 +17,39 @@ let mainHooks: MainHooks | null = null
 export async function startScan(onDone?: () => void): Promise<void> {
   if (scanning) return
   scanning = true
-  store.clear()
+  // Le store porte peut-être le dernier état connu (cache de démarrage) : on
+  // l'envoie d'abord aux fenêtres — la liste s'affiche sans attendre — puis
+  // le scan tourne en arrière-plan et remplace provider par provider. Rien
+  // n'est vidé : le cache n'est qu'un point de départ, jamais un état final.
+  pushStore()
   broadcast('scan:begin', null)
   try {
     await scanAll(
       (batch) => {
         store.replaceAllFor(batch.provider, batch.apps)
         broadcast('apps:batch', batch)
+        // Persistance au fil de l'eau (E2) : une fermeture brutale en plein
+        // scan laisse un état partiel mais cohérent provider par provider.
+        saveCache()
       },
-      (status) => broadcast('provider:status', status)
+      (status) => {
+        store.setStatus(status)
+        broadcast('provider:status', status)
+      }
     )
   } finally {
     scanning = false
     broadcast('scan:end', null)
+    saveCache()
     mainHooks?.onStoreChange()
     onDone?.()
   }
+}
+
+/** Renvoie l'état courant du store aux fenêtres (premier état, issu du cache). */
+function pushStore(): void {
+  for (const status of store.knownStatuses()) broadcast('provider:status', status)
+  for (const batch of store.groups()) broadcast('apps:batch', batch)
 }
 
 // Diffuse un événement à toutes les fenêtres (exporté : index.ts pousse les
@@ -61,11 +79,13 @@ function handleAction(action: AppAction): (id: string) => Promise<void> {
       if (action === 'uninstall') {
         store.remove(id)
         broadcast('app:removed', id)
+        saveCache()
       } else if (action === 'update') {
         // Rafraîchit la liste du provider (avec les stats de mise à jour) pour afficher la nouvelle version.
         const apps = await listProvider(provider)
         store.replaceAllFor(app.provider, apps)
         broadcast('apps:batch', { provider: app.provider, apps })
+        saveCache()
       }
       event('done')
       mainHooks?.onStoreChange()
@@ -103,6 +123,7 @@ export function registerIpc(hooks: MainHooks): void {
     app.ignoredVersion = app.latestVersion
     app.latestVersion = undefined
     broadcast('app:updated', app)
+    saveCache()
     mainHooks?.onStoreChange()
   })
 
@@ -116,6 +137,7 @@ export function registerIpc(hooks: MainHooks): void {
     app.ignoredVersion = undefined
     if (ignored !== app.version) app.latestVersion = ignored
     broadcast('app:updated', app)
+    saveCache()
     mainHooks?.onStoreChange()
   })
 
